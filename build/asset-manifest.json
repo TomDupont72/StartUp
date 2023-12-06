@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/BackOnChain/static/css/main.4159c6f0.css",
+    "main.js": "/BackOnChain/static/js/main.c49132dc.js",
+    "static/js/787.0f8d78ff.chunk.js": "/BackOnChain/static/js/787.0f8d78ff.chunk.js",
+    "static/media/Loading.gif": "/BackOnChain/static/media/Loading.fdfa020f8939e73ae3a1.gif",
+    "static/media/Tezos.png": "/BackOnChain/static/media/Tezos.da6381765fe3da346567.png",
+    "index.html": "/BackOnChain/index.html",
+    "main.4159c6f0.css.map": "/BackOnChain/static/css/main.4159c6f0.css.map",
+    "main.c49132dc.js.map": "/BackOnChain/static/js/main.c49132dc.js.map",
+    "787.0f8d78ff.chunk.js.map": "/BackOnChain/static/js/787.0f8d78ff.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.4159c6f0.css",
+    "static/js/main.c49132dc.js"
+  ]
+}

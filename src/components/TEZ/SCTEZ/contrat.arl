@@ -1,0 +1,228 @@
+archetype BackOnChain
+
+asset claims identified by adresse_c adresse_user_c to big_map {
+    adresse_c : address;
+    adresse_user_c : address;
+    moment : date;
+}
+
+asset map_claims1 identified by adresse_map_c1 to big_map {
+    adresse_map_c1 : address;
+    claims_adresses1 : list<address>;
+}
+
+asset map_claims2 identified by adresse_map_c2 to big_map {
+    adresse_map_c2 : address;
+    claims_adresses2 : list<address>;
+}
+
+asset specials identified by adresse_s adresse_user_s to big_map {
+    adresse_s : address;
+    adresse_user_s : address;
+    montant : tez;
+    delai_s : duration;
+}
+
+asset map_specials1 identified by adresse_map_s1 to big_map {
+    adresse_map_s1 : address;
+    specials_adresses1 : list<address>;
+}
+
+asset map_specials2 identified by adresse_map_s2 to big_map {
+    adresse_map_s2 : address;
+    specials_adresses2 : list<address>;
+}
+
+record token_i {
+    adresse : address;
+    id : nat;
+}
+
+asset tokens identified by adresse_user adresse_t id_t to big_map {
+    adresse_user : address;
+    adresse_t : address;
+    id_t : nat;
+    montant_t : nat = 0;
+}
+
+asset map_tokens identified by adresse_map_t to big_map {
+    adresse_map_t : address;
+    tokens_adresses : list<token_i>;
+}
+
+asset utilisateurs to big_map identified by adresse_u {
+    adresse_u : address;
+    solde : tez = 0tz;
+    caution : tez;
+    delai : duration;
+}
+
+record tx {
+    to_ : address;
+    token_id : nat;
+    amount : nat;
+}
+
+record args_item {
+    from_ : address;
+    txs : list<tx>;
+}
+
+function ajouter_adresse_liste(l : list<address>, e : address) : list<address> {
+    var test : bool = true;
+    for i in l do
+        if i = e then
+            test := false
+    done;
+    if test then
+        l.prepend(e);
+    return l
+}
+
+function retirer_adresse_liste(l : list<address>, e : address) : list<address> {
+    var res : list<address> = [];
+    for i in l do
+        if i <> e then
+            res.prepend(i)
+    done;
+    return res
+} 
+
+function ajouter_NFT_liste(l : list<token_i>, e : token_i) : list<token_i> {
+    var test : bool = true;
+    for i in l do
+        if i.adresse = e.adresse and i.id = e.id then
+            test := false
+    done;
+    if test then
+        l.prepend(e);
+    return l
+}
+
+function retirer_NFT_liste(l : list<token_i>, e : token_i) : list<token_i> {
+    var res : list<token_i> = [];
+    for i in l do
+        if i.adresse <> e.adresse or i.id <> e.id then
+            res.prepend(i)
+    done;
+    return res
+}
+
+entry securiser(d : duration, c : tez) {
+    utilisateurs.add_update(caller, { solde += transferred; caution = c; delai = d})
+}
+
+entry demande_1(a : address) {
+    
+    if specials.contains((caller, a)) then 
+        claims.add_update((caller, a), { moment = now })
+    else begin
+        claims.add_update((caller, a), { moment = now });
+        utilisateurs.add_update(a, { solde += transferred; caution = utilisateurs[a].caution; delai = utilisateurs[a].delai})
+    end;
+    if not map_claims1.contains(caller) then
+        map_claims1.add_update(caller, { claims_adresses1 = [] });
+    if not map_claims2.contains(a) then
+        map_claims2.add_update(a, { claims_adresses2 = [] });
+    map_claims1.add_update(caller, { claims_adresses1 = ajouter_adresse_liste(map_claims1[caller].claims_adresses1, a) });
+    map_claims2.add_update(a, { claims_adresses2 = ajouter_adresse_liste(map_claims2[a].claims_adresses2, caller) })
+}
+
+entry demande_2(a : address, token_ids : list<token_i>) {
+    var args : list<args_item> = [];
+    if specials.contains((caller, a)) then
+        if specials[(caller, a)].delai_s + claims[(caller, a)].moment < now then begin
+            transfer specials[(caller, a)].montant to caller;
+            utilisateurs.add_update(a, { solde -= specials[(caller, a)].montant; caution = utilisateurs[a].caution; delai = utilisateurs[a].delai });
+            claims.remove((caller, a));
+            specials.remove((caller, a));
+            if not map_claims1.contains(caller) then
+                map_claims1.add_update(caller, { claims_adresses1 = [] });
+            if not map_claims2.contains(a) then
+                map_claims2.add_update(a, { claims_adresses2 = [] });
+            if not map_specials1.contains(a) then
+                map_specials1.add_update(a, { specials_adresses1 = [] });
+            if not map_specials2.contains(caller) then
+                map_specials2.add_update(caller, { specials_adresses2 = [] });
+            map_claims1.add_update(caller, { claims_adresses1 = retirer_adresse_liste(map_claims1[caller].claims_adresses1, a) });
+            map_claims2.add_update(a, { claims_adresses2 = retirer_adresse_liste(map_claims2[a].claims_adresses2, caller) });
+            map_specials1.add_update(a, { specials_adresses1 = ajouter_adresse_liste(map_specials1[a].specials_adresses1, caller) });
+            map_specials2.add_update(caller, { specials_adresses2 = ajouter_adresse_liste(map_specials2[caller].specials_adresses2, a) })
+        end else
+            claims.add_update((caller, a), { moment = now })
+    else
+        if utilisateurs[a].delai + claims[(caller, a)].moment < now then begin
+            transfer utilisateurs[a].solde to caller;
+            for t in token_ids do
+                args := [{ from_ = self_address; txs = [{ to_ = caller; token_id = t.id; amount = tokens[(caller, t.adresse, t.id)].montant_t }] }];
+                const e ?= get_entrypoint<list<args_item>>("%transfer", t.adresse) : "ENTRY_NOT_FOUND";
+                const o  = make_operation(0tz, e, args);
+                operations := reverse(prepend(reverse(operations), o));
+            done;
+            if length(token_ids) > 0 then
+                transfer 0tz to a call %transfer<list<args_item>>(args);
+            claims.remove((caller, a));
+            utilisateurs.remove(a);
+            if not map_claims1.contains(caller) then
+                map_claims1.add_update(caller, { claims_adresses1 = [] });
+            if not map_claims2.contains(a) then
+                map_claims2.add_update(a, { claims_adresses2 = [] });
+            map_claims1.add_update(caller, { claims_adresses1 = retirer_adresse_liste(map_claims1[caller].claims_adresses1, a) });
+            map_claims2.add_update(a, { claims_adresses2 = retirer_adresse_liste(map_claims2[a].claims_adresses2, caller) })
+        end else 
+            claims.add_update((caller, a), { moment = now })
+}
+
+entry refuser(a : address) {
+    claims.remove((a, caller));
+    map_claims1.add_update(a, { claims_adresses1 = retirer_adresse_liste(map_claims1[a].claims_adresses1, caller)});
+    map_claims2.add_update(caller, { claims_adresses2 = retirer_adresse_liste(map_claims2[caller].claims_adresses2, a)})
+}
+
+entry super_wallet(a : address, m : tez, d : duration) {
+    specials.add_update((a, caller), { montant = m; delai_s = d });
+    if not map_specials1.contains(a) then
+        map_specials1.add_update(a, { specials_adresses1 = [] });
+    if not map_specials2.contains(caller) then
+        map_specials2.add_update(caller, { specials_adresses2 = [] });
+    map_specials1.add_update(a, { specials_adresses1 = ajouter_adresse_liste(map_specials1[a].specials_adresses1, caller) });
+    map_specials2.add_update(caller, { specials_adresses2 = ajouter_adresse_liste(map_specials2[caller].specials_adresses2, a) })
+}
+
+entry retirer_fonds(s : tez) {
+    transfer s to caller;
+    const ns = utilisateurs[caller].solde - s;
+    utilisateurs.add_update(caller, { solde = ns; caution = utilisateurs[caller].caution; delai = utilisateurs[caller].delai })
+}
+
+entry retirer_special(a : address) {
+    specials.remove((a, caller));
+    if not map_specials1.contains(a) then
+        map_specials1.add_update(a, { specials_adresses1 = [] });
+    if not map_specials2.contains(caller) then
+        map_specials2.add_update(caller, { specials_adresses2 = [] });
+    map_specials1.add_update(a, { specials_adresses1 = retirer_adresse_liste(map_specials1[a].specials_adresses1, caller) });
+    map_specials2.add_update(caller, { specials_adresses2 = retirer_adresse_liste(map_specials2[caller].specials_adresses2, a) })
+}
+
+entry recevoir_NFT(a : address, i : nat, m : nat, args : list<args_item>) {
+    const e ?= get_entrypoint<list<args_item>>("%transfer", a) : "ENTRY_NOT_FOUND";
+    const o  = make_operation(0tz, e, args);
+    operations := reverse(prepend(reverse(operations), o));
+    tokens.add_update((caller, a, i), { montant_t += m });
+    if not map_tokens.contains(caller) then
+        map_tokens.add_update(caller, { tokens_adresses = [] });
+    map_tokens.add_update(caller, { tokens_adresses = ajouter_NFT_liste(map_tokens[caller].tokens_adresses, { adresse = a; id = i }) })
+}
+
+entry retirer_NFT(a : address, i : nat, args : list<args_item>) {
+    if tokens.contains((caller, a, i)) then begin
+        tokens.remove((caller, a, i));
+        const e ?= get_entrypoint<list<args_item>>("%transfer", a) : "ENTRY_NOT_FOUND";
+        const o  = make_operation(0tz, e, args);
+        operations := reverse(prepend(reverse(operations), o));
+        if not map_tokens.contains(caller) then
+            map_tokens.add_update(caller, { tokens_adresses = [] });
+        map_tokens.add_update(caller, { tokens_adresses = retirer_NFT_liste(map_tokens[caller].tokens_adresses, { adresse = a; id = i }) })
+    end
+}

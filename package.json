@@ -1,0 +1,67 @@
+{
+  "homepage": "http://tomdupont72.github.io/BackOnChain",
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@craco/craco": "^7.1.0",
+    "@taquito/beacon-wallet": "^17.0.0",
+    "@taquito/signer": "^17.0.0",
+    "@taquito/taquito": "^17.0.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "assert": "^2.1.0",
+    "bignumber.js": "^9.1.1",
+    "browserify-zlib": "^0.2.0",
+    "buffer": "^6.0.3",
+    "customize-cra": "^1.0.0",
+    "fs": "^0.0.1-security",
+    "process": "^0.11.10",
+    "react": "^18.2.0",
+    "react-app-rewired": "^2.2.1",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.1",
+    "react-scripts": "5.0.1",
+    "util": "^0.12.5",
+    "web-vitals": "^2.1.4",
+    "web3": "^4.1.2"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      "chrome >= 67",
+      "edge >= 79",
+      "firefox >= 68",
+      "opera >= 54",
+      "safari >= 14"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "crypto-browserify": "^3.12.0",
+    "gh-pages": "^6.0.0",
+    "path-browserify": "^1.0.1",
+    "stream-browserify": "^3.0.0"
+  },
+  "browser": {
+    "stream": "stream-browserify"
+  }
+}
